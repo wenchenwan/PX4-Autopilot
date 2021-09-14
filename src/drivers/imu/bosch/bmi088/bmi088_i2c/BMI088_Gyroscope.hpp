@@ -92,12 +92,12 @@ private:
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
-	bool FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples);
+	bool FIFORead(hrt_abstime timestamp_sample, uint8_t samples);
 	void FIFOReset();
 
 	bool SelfTest();
-	bool NormalRead(const hrt_abstime &timestamp_sample);
-	bool SimpleFIFORead(const hrt_abstime &timestamp_sample);
+	bool NormalRead(hrt_abstime timestamp_sample);
+	bool SimpleFIFORead(hrt_abstime timestamp_sample);
 	PX4Gyroscope _px4_gyro;
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_gyro: bad register")};

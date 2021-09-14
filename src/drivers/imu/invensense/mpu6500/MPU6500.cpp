@@ -416,8 +416,9 @@ int MPU6500::DataReadyInterruptCallback(int irq, void *context, void *arg)
 void MPU6500::DataReady()
 {
 	// at least the required number of samples in the FIFO
-	if (++_drdy_count >= _fifo_gyro_samples) {
-		_drdy_timestamp_sample.store(hrt_absolute_time());
+	uint64_t expected = 0;
+
+	if ((++_drdy_count >= _fifo_gyro_samples) && _drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
 		_drdy_count -= _fifo_gyro_samples;
 		ScheduleNow();
 	}
@@ -503,7 +504,7 @@ uint16_t MPU6500::FIFOReadCount()
 	return combine(fifo_count_buf[1], fifo_count_buf[2]);
 }
 
-bool MPU6500::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
+bool MPU6500::FIFORead(hrt_abstime timestamp_sample, uint8_t samples)
 {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
@@ -531,7 +532,6 @@ void MPU6500::FIFOReset()
 
 	// reset while FIFO is disabled
 	_drdy_count = 0;
-	_drdy_timestamp_sample.store(0);
 
 	// FIFO_EN: enable both gyro and accel
 	// USER_CTRL: re-enable FIFO
@@ -540,6 +540,9 @@ void MPU6500::FIFOReset()
 			RegisterSetAndClearBits(r.reg, r.set_bits, r.clear_bits);
 		}
 	}
+
+	// clear sample timestamp to allow data ready scheduling to resume
+	_drdy_timestamp_sample.store(0);
 }
 
 static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
@@ -547,7 +550,7 @@ static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
 	return (memcmp(&f0.ACCEL_XOUT_H, &f1.ACCEL_XOUT_H, 6) == 0);
 }
 
-bool MPU6500::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+bool MPU6500::ProcessAccel(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
@@ -600,7 +603,7 @@ bool MPU6500::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	return !bad_data;
 }
 
-void MPU6500::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+void MPU6500::ProcessGyro(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;

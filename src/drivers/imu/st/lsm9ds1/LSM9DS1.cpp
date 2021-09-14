@@ -327,7 +327,7 @@ void LSM9DS1::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cle
 	}
 }
 
-bool LSM9DS1::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
+bool LSM9DS1::FIFORead(hrt_abstime timestamp_sample, uint8_t samples)
 {
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;

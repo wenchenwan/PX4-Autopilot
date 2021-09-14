@@ -293,7 +293,12 @@ int BMI088_Accelerometer::DataReadyInterruptCallback(int irq, void *context, voi
 
 void BMI088_Accelerometer::DataReady()
 {
-	ScheduleNow();
+	// schedule transfer if sample timestamp has been cleared (thread ready for next transfer)
+	uint64_t expected = 0;
+
+	if (_drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
+		ScheduleNow();
+	}
 }
 
 bool BMI088_Accelerometer::DataReadyInterruptConfigure()
@@ -363,7 +368,7 @@ uint16_t BMI088_Accelerometer::FIFOReadCount()
 	return combine(FIFO_LENGTH_1, FIFO_LENGTH_0);
 }
 
-bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
+bool BMI088_Accelerometer::FIFORead(hrt_abstime timestamp_sample, uint8_t samples)
 {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
@@ -463,7 +468,7 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 	return false;
 }
 
-bool BMI088_Accelerometer::SimpleFIFORead(const hrt_abstime &timestamp_sample)
+bool BMI088_Accelerometer::SimpleFIFORead(hrt_abstime timestamp_sample)
 {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
@@ -583,7 +588,7 @@ void BMI088_Accelerometer::FIFOReset()
 	// ACC_SOFTRESET: trigger a FIFO reset by writing 0xB0 to ACC_SOFTRESET (register 0x7E).
 	RegisterWrite(Register::ACC_SOFTRESET, 0xB0);
 
-	// reset while FIFO is disabled
+	// clear sample timestamp to allow data ready scheduling to resume
 	_drdy_timestamp_sample.store(0);
 }
 
@@ -881,7 +886,7 @@ float *BMI088_Accelerometer::SensorDataTomg(float *data)
 	return data;
 }
 
-bool BMI088_Accelerometer::NormalRead(const hrt_abstime &timestamp_sample)
+bool BMI088_Accelerometer::NormalRead(hrt_abstime timestamp_sample)
 {
 	const int16_t tX[3] = {1, 0, 0};
 	const int16_t tY[3] = {0, -1, 0};

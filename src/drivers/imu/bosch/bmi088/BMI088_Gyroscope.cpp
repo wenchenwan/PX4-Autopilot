@@ -337,8 +337,12 @@ int BMI088_Gyroscope::DataReadyInterruptCallback(int irq, void *context, void *a
 
 void BMI088_Gyroscope::DataReady()
 {
-	_drdy_timestamp_sample.store(hrt_absolute_time());
-	ScheduleNow();
+	// schedule transfer if sample timestamp has been cleared (thread ready for next transfer)
+	uint64_t expected = 0;
+
+	if (_drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
+		ScheduleNow();
+	}
 }
 
 bool BMI088_Gyroscope::DataReadyInterruptConfigure()
@@ -404,7 +408,7 @@ void BMI088_Gyroscope::RegisterSetAndClearBits(Register reg, uint8_t setbits, ui
 	}
 }
 
-bool BMI088_Gyroscope::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
+bool BMI088_Gyroscope::FIFORead(hrt_abstime timestamp_sample, uint8_t samples)
 {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
@@ -451,9 +455,6 @@ void BMI088_Gyroscope::FIFOReset()
 	// FIFO_CONFIG_1: FIFO overrun condition can only be cleared by writing to the FIFO configuration register FIFO_CONFIG_1
 	RegisterWrite(Register::FIFO_CONFIG_1, 0);
 
-	// reset while FIFO is disabled
-	_drdy_timestamp_sample.store(0);
-
 	// FIFO_CONFIG_0: restore FIFO watermark
 	// FIFO_CONFIG_1: re-enable FIFO
 	for (const auto &r : _register_cfg) {
@@ -461,6 +462,9 @@ void BMI088_Gyroscope::FIFOReset()
 			RegisterSetAndClearBits(r.reg, r.set_bits, r.clear_bits);
 		}
 	}
+
+	// clear sample timestamp to allow data ready scheduling to resume
+	_drdy_timestamp_sample.store(0);
 }
 
 } // namespace Bosch::BMI088::Gyroscope

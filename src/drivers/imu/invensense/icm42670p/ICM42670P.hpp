@@ -119,11 +119,11 @@ private:
 	template <typename T> void RegisterClearBits(T reg, uint8_t clearbits) { RegisterSetAndClearBits(reg, 0, clearbits); }
 
 	uint16_t FIFOReadCount();
-	bool FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples);
+	bool FIFORead(hrt_abstime timestamp_sample, uint8_t samples);
 	void FIFOReset();
 
-	void ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
-	void ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
+	void ProcessAccel(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
+	void ProcessGyro(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
 	void UpdateTemperature();
 
 	uint8_t RegisterReadBank1(uint8_t reg);

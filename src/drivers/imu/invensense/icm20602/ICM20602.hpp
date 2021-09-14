@@ -117,11 +117,11 @@ private:
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
 	uint16_t FIFOReadCount();
-	bool FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples);
+	bool FIFORead(hrt_abstime timestamp_sample, uint8_t samples);
 	void FIFOReset();
 
-	bool ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
-	void ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
+	bool ProcessAccel(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
+	void ProcessGyro(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
 	bool ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples);
 
 	const spi_drdy_gpio_t _drdy_gpio;

@@ -411,9 +411,10 @@ int ICM42670P::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ICM42670P::DataReady()
 {
-	uint32_t expected = 0;
+	// schedule transfer if sample timestamp has been cleared (thread ready for next transfer)
+	uint64_t expected = 0;
 
-	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_gyro_samples)) {
+	if (_drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
 		ScheduleNow();
 	}
 }
@@ -500,7 +501,7 @@ uint16_t ICM42670P::FIFOReadCount()
 
 
 
-bool ICM42670P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
+bool ICM42670P::FIFORead(hrt_abstime timestamp_sample, uint8_t samples)
 {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4 + 2, FIFO::SIZE);
@@ -584,7 +585,7 @@ void ICM42670P::FIFOReset()
 	_drdy_fifo_read_samples.store(0);
 }
 
-void ICM42670P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+void ICM42670P::ProcessAccel(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
@@ -612,7 +613,7 @@ void ICM42670P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 	}
 }
 
-void ICM42670P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+void ICM42670P::ProcessGyro(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;

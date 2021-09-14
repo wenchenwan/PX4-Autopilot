@@ -101,7 +101,7 @@ private:
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
 	uint16_t FIFOReadCount();
-	bool FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples);
+	bool FIFORead(hrt_abstime timestamp_sample, uint8_t samples);
 	void FIFOReset();
 
 	void UpdateTemperature();
@@ -111,8 +111,8 @@ private:
 	float *ReadAccelDataFIFO();
 	float *SensorDataTomg(float *data);
 	uint8_t CheckSensorErrReg();
-	bool SimpleFIFORead(const hrt_abstime &timestamp_sample);
-	bool NormalRead(const hrt_abstime &timestamp_sample);
+	bool SimpleFIFORead(hrt_abstime timestamp_sample);
+	bool NormalRead(hrt_abstime timestamp_sample);
 
 	PX4Accelerometer _px4_accel;
 

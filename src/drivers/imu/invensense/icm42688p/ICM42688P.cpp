@@ -378,8 +378,12 @@ int ICM42688P::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ICM42688P::DataReady()
 {
-	_drdy_timestamp_sample.store(hrt_absolute_time());
-	ScheduleNow();
+	// schedule transfer if sample timestamp has been cleared (thread ready for next transfer)
+	uint64_t expected = 0;
+
+	if (_drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
+		ScheduleNow();
+	}
 }
 
 bool ICM42688P::DataReadyInterruptConfigure()
@@ -466,7 +470,7 @@ uint16_t ICM42688P::FIFOReadCount()
 	return combine(fifo_count_buf[1], fifo_count_buf[2]);
 }
 
-bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
+bool ICM42688P::FIFORead(hrt_abstime timestamp_sample, uint8_t samples)
 {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
@@ -559,7 +563,7 @@ void ICM42688P::FIFOReset()
 	// SIGNAL_PATH_RESET: FIFO flush
 	RegisterSetBits(Register::BANK_0::SIGNAL_PATH_RESET, SIGNAL_PATH_RESET_BIT::FIFO_FLUSH);
 
-	// reset while FIFO is disabled
+	// clear sample timestamp to allow data ready scheduling to resume
 	_drdy_timestamp_sample.store(0);
 }
 
@@ -580,7 +584,7 @@ static constexpr int32_t reassemble_20bit(const uint32_t a, const uint32_t b, co
 	return static_cast<int32_t>(x);
 }
 
-void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+void ICM42688P::ProcessAccel(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
@@ -667,7 +671,7 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 	}
 }
 
-void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+void ICM42688P::ProcessGyro(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;

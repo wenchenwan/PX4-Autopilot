@@ -458,8 +458,9 @@ int ICM20948::DataReadyInterruptCallback(int irq, void *context, void *arg)
 void ICM20948::DataReady()
 {
 	// at least the required number of samples in the FIFO
-	if (++_drdy_count >= _fifo_gyro_samples) {
-		_drdy_timestamp_sample.store(hrt_absolute_time());
+	uint64_t expected = 0;
+
+	if ((++_drdy_count >= _fifo_gyro_samples) && _drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
 		_drdy_count -= _fifo_gyro_samples;
 		ScheduleNow();
 	}
@@ -560,7 +561,7 @@ uint16_t ICM20948::FIFOReadCount()
 	return combine(fifo_count_buf[1], fifo_count_buf[2]);
 }
 
-bool ICM20948::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
+bool ICM20948::FIFORead(hrt_abstime timestamp_sample, uint8_t samples)
 {
 	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 
@@ -611,6 +612,8 @@ void ICM20948::FIFOReset()
 
 	// reset while FIFO is disabled
 	_drdy_count = 0;
+
+	// clear sample timestamp to allow data ready scheduling to resume
 	_drdy_timestamp_sample.store(0);
 }
 
@@ -619,7 +622,7 @@ static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
 	return (memcmp(&f0.ACCEL_XOUT_H, &f1.ACCEL_XOUT_H, 6) == 0);
 }
 
-bool ICM20948::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+bool ICM20948::ProcessAccel(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
@@ -672,7 +675,7 @@ bool ICM20948::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	return !bad_data;
 }
 
-void ICM20948::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+void ICM20948::ProcessGyro(hrt_abstime timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
