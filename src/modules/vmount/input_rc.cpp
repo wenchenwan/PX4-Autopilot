@@ -115,6 +115,10 @@ bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bo
 	for (int i = 0; i < 3; ++i) {
 		new_aux_values[i] = _get_aux_value(manual_control_setpoint, i);
 	}
+	printf("                                                                                          new values %.2f %.2f %.2f\n",
+			(double)new_aux_values[0],
+			(double)new_aux_values[1],
+			(double)new_aux_values[2]);
 
 	// If we were already active previously, we just update normally. Otherwise, there needs to be
 	// a major stick movement to re-activate manual (or it's running for the very first time).
@@ -131,19 +135,29 @@ bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bo
 
 		_first_time = false;
 
-		matrix::Eulerf euler(new_aux_values[0] * M_PI_F, new_aux_values[1] * M_PI_F,
+		matrix::Eulerf euler(new_aux_values[1] * M_PI_F, new_aux_values[0] * M_PI_F,
 				     new_aux_values[2] * M_PI_F);
 		matrix::Quatf q(euler);
 		q.copyTo(control_data.type_data.angle.q);
+
+
+		control_data.type_data.angle.angular_velocity[0] = NAN;
+		control_data.type_data.angle.angular_velocity[1] = NAN;
+		control_data.type_data.angle.angular_velocity[2] = NAN;
 
 		for (int i = 0; i < 3; ++i) {
 			// We always use follow mode with RC input for now.
 			control_data.type_data.angle.frames[i] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 			_last_set_aux_values[i] = new_aux_values[i];
 		}
+		for (int i = 0; i < 4; ++i) {
+			//control_data.type_data.angle.q[i] = q;
+		}
 
 		control_data.gimbal_shutter_retract = false;
 		return true;
+
+
 
 	} else {
 		return false;

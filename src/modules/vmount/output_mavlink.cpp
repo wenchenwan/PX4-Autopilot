@@ -207,6 +207,14 @@ void OutputMavlinkV2::_publish_gimbal_device_set_attitude()
 	if (_absolute_angle[2]) {
 		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_LOCK;
 	}
+	//printf("send attitude: %.1f %.1f %.1f %.1f %.1f %.1f %.1f\n",
+	//	(double)set_attitude.angular_velocity_x,
+	//	(double)set_attitude.angular_velocity_y,
+	//	(double)set_attitude.angular_velocity_z,
+	//	(double)set_attitude.q[0],
+	//	(double)set_attitude.q[1],
+	//	(double)set_attitude.q[2],
+	//	(double)set_attitude.q[3]);
 
 	_gimbal_device_set_attitude_pub.publish(set_attitude);
 }

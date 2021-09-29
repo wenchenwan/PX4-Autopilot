@@ -82,6 +82,16 @@ private:
 			msg.angular_velocity_y = gimbal_device_set_attitude.angular_velocity_y;
 			msg.angular_velocity_z = gimbal_device_set_attitude.angular_velocity_z;
 
+
+//	printf("sending mavlink: %.1f %.1f %.1f %.1f %.1f %.1f %.1f\n",
+//		(double)msg.angular_velocity_x,
+//		(double)msg.angular_velocity_y,
+//		(double)msg.angular_velocity_z,
+//		(double)msg.q[0],
+//		(double)msg.q[1],
+//		(double)msg.q[2],
+//		(double)msg.q[3]);
+
 			mavlink_msg_gimbal_device_set_attitude_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;

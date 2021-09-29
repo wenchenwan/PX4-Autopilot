@@ -1882,6 +1882,17 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	rc.values[16] = man.chan17_raw;
 	rc.values[17] = man.chan18_raw;
 
+#if 1
+	for (int i = 0; i < 11; ++i) {
+		printf("%d: %04d", i, rc.values[i]);
+		if (i < 10) {
+			printf(", ");
+		} else {
+			printf("\n");
+		}
+	}
+#endif
+
 	// check how many channels are valid
 	for (int i = 17; i >= 0; i--) {
 		const bool ignore_max = rc.values[i] == UINT16_MAX; // ignore any channel with value UINT16_MAX
